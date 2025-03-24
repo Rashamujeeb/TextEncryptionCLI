@@ -1,0 +1,112 @@
+from Crypto.Cipher import AES, DES, PKCS1_OAEP
+from Crypto.Util.Padding import pad, unpad
+from Crypto.PublicKey import RSA
+import base64
+import os
+
+# Generate AES & DES keys
+AES_KEY = os.urandom(16)  # 16-byte key for AES
+DES_KEY = os.urandom(8)   # 8-byte key for DES
+
+# Generate RSA Key Pair
+RSA_KEY_PAIR = RSA.generate(2048)
+RSA_PUBLIC_KEY = RSA_KEY_PAIR.publickey()
+RSA_PRIVATE_KEY = RSA_KEY_PAIR
+
+# AES Encryption & Decryption
+def aes_encrypt(plain_text):
+    cipher = AES.new(AES_KEY, AES.MODE_CBC)
+    iv = cipher.iv
+    encrypted_bytes = cipher.encrypt(pad(plain_text.encode(), AES.block_size))
+    return base64.b64encode(iv + encrypted_bytes).decode()
+
+def aes_decrypt(encrypted_text):
+    encrypted_data = base64.b64decode(encrypted_text)
+    iv = encrypted_data[:16]
+    encrypted_bytes = encrypted_data[16:]
+    cipher = AES.new(AES_KEY, AES.MODE_CBC, iv)
+    return unpad(cipher.decrypt(encrypted_bytes), AES.block_size).decode()
+
+# DES Encryption & Decryption
+def des_encrypt(plain_text):
+    cipher = DES.new(DES_KEY, DES.MODE_CBC)
+    iv = cipher.iv
+    encrypted_bytes = cipher.encrypt(pad(plain_text.encode(), DES.block_size))
+    return base64.b64encode(iv + encrypted_bytes).decode()
+
+def des_decrypt(encrypted_text):
+    encrypted_data = base64.b64decode(encrypted_text)
+    iv = encrypted_data[:8]
+    encrypted_bytes = encrypted_data[8:]
+    cipher = DES.new(DES_KEY, DES.MODE_CBC, iv)
+    return unpad(cipher.decrypt(encrypted_bytes), DES.block_size).decode()
+
+# RSA Encryption & Decryption
+def rsa_encrypt(plain_text):
+    cipher = PKCS1_OAEP.new(RSA_PUBLIC_KEY)
+    encrypted_bytes = cipher.encrypt(plain_text.encode())
+    return base64.b64encode(encrypted_bytes).decode()
+
+def rsa_decrypt(encrypted_text):
+    encrypted_data = base64.b64decode(encrypted_text)
+    cipher = PKCS1_OAEP.new(RSA_PRIVATE_KEY)
+    return cipher.decrypt(encrypted_data).decode()
+
+# Unified CLI
+def main():
+    while True:
+        print("\nSelect an operation:")
+        print("1. Encrypt")
+        print("2. Decrypt")
+        print("3. Exit")
+        operation = input("Enter 1, 2, or 3: ").strip()
+
+        if operation == '3':
+            print("Exiting program.")
+            break  # Exit loop
+        
+        if operation not in ['1', '2']:
+            print("Invalid choice! Please enter 1 or 2.")
+            continue
+
+        print("\nChoose an encryption algorithm:")
+        print("1. AES")
+        print("2. DES")
+        print("3. RSA")
+        algo_choice = input("Enter 1, 2, or 3: ").strip()
+
+        if algo_choice not in ['1', '2', '3']:
+            print("Invalid choice! Please enter 1, 2, or 3.")
+            continue
+        
+        if operation == '1':  # Encryption
+            message = input("Enter text to encrypt: ")
+
+            if algo_choice == '1':
+                encrypted = aes_encrypt(message)
+                print(f"\n🔒 AES Encrypted Text: {encrypted}")
+            elif algo_choice == '2':
+                encrypted = des_encrypt(message)
+                print(f"\n🔒 DES Encrypted Text: {encrypted}")
+            elif algo_choice == '3':
+                encrypted = rsa_encrypt(message)
+                print(f"\n🔒 RSA Encrypted Text: {encrypted}")
+
+        elif operation == '2':  # Decryption
+            encrypted_message = input("Enter encrypted text: ")
+
+            try:
+                if algo_choice == '1':
+                    decrypted = aes_decrypt(encrypted_message)
+                    print(f"\n🔓 AES Decrypted Text: {decrypted}")
+                elif algo_choice == '2':
+                    decrypted = des_decrypt(encrypted_message)
+                    print(f"\n🔓 DES Decrypted Text: {decrypted}")
+                elif algo_choice == '3':
+                    decrypted = rsa_decrypt(encrypted_message)
+                    print(f"\n🔓 RSA Decrypted Text: {decrypted}")
+            except Exception as e:
+                print("\n❌ Decryption failed! Possible incorrect input or key mismatch.")
+
+if __name__ == "__main__":
+    main()
